@@ -65,21 +65,37 @@ class Converter:
         self.page_numbering_offset = 16
 
         # The structural information constituted by the presence of chapters is
-        # hard to be automatically discovered. It thus need to be provided manually
+        # not always easy to be automatically discovered. While waiting for
+        # smarter (and free) tools, the following is a manually extracted
+        # raw definition of the chapters with the following format
+        #  - key: page on which the chapter begins
+        #  - value = { name: str, illumination_delimiter: str}
         self.chapters = {
-            7: "Acknowledgements",
-            9: "Dear Reader",
-            15: "On Language",
-            17: "Contents",
-            21: "A Note from the Teacher",
-            43: "Mindfulness is a Lifestyle Change",
-            65: "Take a Closer Look",
-            79: "Reflect. Learn. Keep Going.",
-            91: "Day-to-Day",
-            125: "A Lighter Approach",
-            135: "Continuing the Work",
-            145: "Appendix: Mindfulness in Brief",
-            158: "Dedication",
+            7: {"name": "Acknowledgements", "illumination_delimiter": "MBhaddanta"},
+            9: {"name": "Dear Reader", "illumination_delimiter": "Iobservation"},
+            15: {"name": "On Language", "illumination_delimiter": "Wwords"},
+            17: {"name": "Contents", "illumination_delimiter": None},
+            21: {"name": "A Note from the Teacher", "illumination_delimiter": "Ytime"},
+            43: {
+                "name": "Mindfulness is a Lifestyle Change",
+                "illumination_delimiter": "WTwo",
+            },
+            65: {"name": "Take a Closer Look", "illumination_delimiter": "Man"},
+            79: {
+                "name": "Reflect. Learn. Keep Going.",
+                "illumination_delimiter": "Dnot",
+            },
+            91: {"name": "Day-to-Day", "illumination_delimiter": "Wchange"},
+            125: {"name": "A Lighter Approach", "illumination_delimiter": "Wawareness"},
+            135: {
+                "name": "Continuing the Work",
+                "illumination_delimiter": "A remember",
+            },
+            145: {
+                "name": "Appendix: Mindfulness in Brief",
+                "illumination_delimiter": "Sour",
+            },
+            158: {"name": "Dedication", "illumination_delimiter": None},
         }
 
         # Pages with illustrated quotes from the text have no headers
@@ -170,7 +186,7 @@ class Converter:
         return self.__chapter_page[page_number]
 
     def __get_chapter_name(self, page_number):
-        return self.chapters[self.__get_chapter_page(page_number)]
+        return self.chapters[self.__get_chapter_page(page_number)]["name"]
 
     def __convert_to_logical_page_number(self, page_number):
         # Deal with the first pages numbering that uses roman numeration
@@ -186,6 +202,56 @@ class Converter:
             print("Exiting.")
             sys.exit()
         return page_number - self.page_numbering_offset
+
+    def fix_illumination(self, page_number, text_to_fix):
+        """Chapters beginnings (that is the first page of a new chapter) start
+        with an illumination (decorated first letter) that confuses pypdf.
+        The letter of the illumination ends mixed up within the text of the
+        first sentence of the chapter. Fix that.
+        """
+        if not self.__is_chapter_beginning_page(page_number):
+            print("Erroneous call to Converter::fix_illumination()")
+            print("  This does not seem to be a chapter starting page.")
+            print("  Exiting")
+            sys.exit()
+        delimiter = self.chapters[page_number]["illumination_delimiter"]
+        if delimiter is None:
+            # This chapter has no illumination to fix (probably because there
+            # is no illumination at all). Return the original text:
+            return text_to_fix
+        # The illumination character that got embedded in the text happens to
+        # to always be preceded by a return character. Looking for the delimiter
+        # prefixed with a return character will make the result a little more
+        # secure (yet not foolproof):
+        delimiter_with_return = "[\n]" + delimiter
+        if not re.search(delimiter_with_return, text_to_fix):
+            print(
+                "Delimiter ",
+                repr(delimiter),
+                "not found within illumination of chapter on page ",
+                page_number,
+                ".",
+            )
+            print(
+                "Chapter text that we were looking to fix: ",
+                repr(text_to_fix),
+            )
+            print("Exiting.")
+            sys.exit()
+        # The first thing to do is to remove the illumination character from
+        # the text. We use this opportunity to replace the return character,
+        # that prefixed the delimiter, with a whitespace:
+        corrected_snippet = delimiter[1:]
+        text_to_fix = re.sub(
+            delimiter_with_return, " " + corrected_snippet, text_to_fix
+        )
+        # The second thing to do is to reinsert the illumination character
+        # within the text
+        text_to_fix = delimiter[0] + text_to_fix
+        # The third fix consists in replacing the hand made spacing of the
+        # first lines of the text (that would be overwritten by the illumination
+        # drawing of the leading character) with a single white space:
+        return re.sub("\n      ", " ", text_to_fix)
 
     def __initialize_page_header(self):
 
@@ -203,6 +269,10 @@ class Converter:
             if page_number in range(10, 15):
                 self.headers[page_number] = roman.toRoman(page_number).lower()
                 continue
+            # The following hardcoded value for page 16 is because that page
+            # doesn't follow the above logical rule. The following fix for page
+            # 16 _is_ correct ! It is the pdf that is erroneous.
+            self.headers[16] = roman.toRoman(16).lower() + roman.toRoman(16).lower()
             if page_number in range(18, 20):
                 self.headers[page_number] = str(
                     self.__convert_to_logical_page_number(page_number)
@@ -298,13 +368,22 @@ class Converter:
             print(
                 "(that is reader page number ", extracted_page.reader_page_number, ")"
             )
+            original_page_text = extracted_page.original_pdf_page.extract_text(
+                extraction_mode="layout"
+            )
+            print("Pdf original text : ", repr(original_page_text))
             print("Exiting.")
-            print("ORIGINAL TEXT", repr(extracted_page.original_pdf_text))
             sys.exit()
         # Proceed with the removal of the header
         header_less_page_text = re.sub(header_text, "", header_less_page_text)
         # Eventually, remove some possibly leaving whitespaces
         header_less_page_text = header_less_page_text.lstrip()
+        # When necessary fix chapter illumination
+        page_number = extracted_page.page_number
+        if self.__is_chapter_beginning_page(page_number):
+            header_less_page_text = self.fix_illumination(
+                page_number, header_less_page_text
+            )
 
         # Break the original streamlined text into sentences.
         # FIXME FIXME
