@@ -9,9 +9,9 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "cwd": "${workspaceFolder}/Data/ISBN_978-0-9835844-5-2_-_Collecting_Gold_Dust",
+            "cwd": "${fileDirname}",
             "console": "integratedTerminal",
-            "python": "${workspaceFolder}/Data/ISBN_978-0-9835844-5-2_-_Collecting_Gold_Dust/venv/bin/python"
+            "python": "${fileDirname}/venv/bin/python"
         }
     ]
 }

@@ -10,11 +10,6 @@ class Document:
         self.chapters.append(new_chapter)
 
 
-class PageLayout:
-    def __init__(self, reader_page_number):
-        self.reader_page_number = reader_page_number
-
-
 class Chapter:
     """
     A list of Paragraphs.
@@ -30,7 +25,7 @@ class Chapter:
         self.pages.append(page)
 
     def add_paragraph(self, new_paragraph):
-        self.chapters.append(new_paragraph)
+        self.paragraphs.append(new_paragraph)
 
 
 class Paragraph:
@@ -38,8 +33,12 @@ class Paragraph:
     A list of sentences.
     """
 
-    def __init__(self):
-        self.sentences = {}
+    def __init__(self, layout):
+        self.sentences = list()
+        self.page_layout = layout
+
+    def add_sentence(self, sentence):
+        self.sentences.append(sentence)
 
 
 class Sentence:

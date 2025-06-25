@@ -25,22 +25,20 @@ python main.py
 
 ```mermaid
 classDiagram
-  class Document {
-  }
-  class PageLayout {
-    int page # Starts on that page
-  }
-  class Chapter {
-  }
-  Chapter o-- PageLayout  
-  class Paragraph {
+  namespace SemanticDocument {
+    class Document {
+    }
+    
+    class Chapter {
+    } 
+    class Paragraph {
 
+    }
+
+    class Sentence {
+    }
   }
-  Paragraph o-- PageLayout 
-  class Sentence {
-  }
-  
-  Sentence o-- PageLayout
+
   Document *-- Chapter
   Chapter *-- Paragraph
   Chapter <-- Paragraph
@@ -60,7 +58,14 @@ classDiagram
     }
     class ExtractedPage {
     }
+    class PageLayout {
+    int page # Starts on that page
   }
+  }
+  Chapter o-- PageLayout 
+  Paragraph o-- PageLayout 
+  Sentence o-- PageLayout
+  
   Converter *-- ExtractedPage
   Chapter o-- ExtractedPage
   ExtractedPage --> Page

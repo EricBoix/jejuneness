@@ -11,15 +11,25 @@ for chapter in document.chapters:
     print("################## Chapter name: ", chapter.name)
     print("###################################################################")
     for page in chapter.pages:
-        print("Python page number :", page.page_number)
+        print("##########################################################")
+        print(repr(page))
+        print("##########################################################")
+
+
+print("##########################################################")
+print("##########################################################")
+print("#################### OTHER ###############################")
+print("##########################################################")
+print("##########################################################")
+for chapter in document.chapters:
+    print("###################################################################")
+    print("################## Chapter name: ", chapter.name)
+    print("###################################################################")
+    for paragraph in chapter.paragraphs:
         print(
-            "Reader page number (starting from 1 in a pdf viewer):",
-            page.reader_page_number,
+            "Paragraph (ref:",
+            paragraph.page_layout.reference_text,
+            "):\n",
+            paragraph.text,
+            "\n",
         )
-        print(
-            "Original Text: ",
-            repr(page.original_pdf_page.extract_text(extraction_mode="layout")),
-        )
-        print("Header to remove: ", converter.headers[page.page_number])
-        print("Tokenized Text: ", repr(page.text))
-        print("##########################################################\n\n")
